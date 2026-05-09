@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign Wealth Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1f2d45;
+    --accent: #00d4aa;
+    --accent2: #3b82f6;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --gold: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ── */
+  .app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  .logo p {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav { padding: 12px 8px; flex: 1; overflow-y: auto; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(0,212,170,0.1); color: var(--accent); }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .topbar h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .badge {
+    background: rgba(0,212,170,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Stats Row ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .stat-card.warn::after { background: var(--warn); }
+  .stat-card.info::after { background: var(--accent2); }
+  .stat-card.gold::after { background: var(--gold); }
+
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: 'DM Mono', monospace; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .positive { color: var(--success); }
+  .negative { color: var(--danger); }
+
+  /* ── Tables ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(31,45,69,0.5);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .type-equity_mf { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .type-liquid_mf { background: rgba(0,212,170,0.15); color: var(--accent); }
+  .type-stocks { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+  .type-fd { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .type-savings { background: rgba(34,197,94,0.15); color: #86efac; }
+  .type-gold_etf { background: rgba(251,191,36,0.15); color: var(--gold); }
+  .type-nps { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .type-ppf { background: rgba(20,184,166,0.15); color: #5eead4;}
+  .type-silver_etf { background: rgba(20,184,166,0.15); color: silver; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00b894; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ── Chat View ── */
+  .chat-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; height: calc(100vh - 120px); }
+
+  .chat-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .msg {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg-user { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2); align-self: flex-end; color: var(--text); }
+  .msg-agent { background: var(--surface2); border: 1px solid var(--border); align-self: flex-start; }
+  .msg-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-family: 'DM Mono', monospace; text-transform: uppercase; }
+
+  .chat-input-area {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: none;
+    height: 44px;
+  }
+
+  .chat-input:focus { border-color: var(--accent); }
+
+  /* ── Withdrawal Plan Panel ── */
+  .plan-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .plan-panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(0,212,170,0.05), transparent);
+  }
+
+  .plan-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+  .plan-step {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .plan-step-number {
+    position: absolute;
+    top: -8px; left: 12px;
+    background: var(--accent);
+    color: #000;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .plan-step-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; margin-top: 4px; }
+  .plan-step-detail { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; line-height: 1.8; }
+  .plan-step-tax { color: var(--warn); }
+  .plan-step-net { color: var(--success); }
+
+  .plan-summary {
+    background: linear-gradient(135deg, rgba(0,212,170,0.05), rgba(59,130,246,0.05));
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .summary-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; font-family: 'DM Mono', monospace; }
+  .summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--border); font-weight: 600; font-size: 13px; }
+
+  /* ── Sentiment ── */
+  .sentiment-box {
+    background: rgba(59,130,246,0.05);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #93c5fd;
+    margin-top: 12px;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: fadeUp 0.2s ease;
+  }
+
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ── HITL Banner ── */
+  .hitl-banner {
+    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.1));
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .hitl-banner-text { font-size: 12px; line-height: 1.5; }
+  .hitl-banner-text strong { color: var(--warn); display: block; margin-bottom: 2px; }
+
+  /* ── Quick Actions ── */
+  .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+  .chip {
+    padding: 6px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Loader ── */
+  .loader { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; }
+  .dots { display: flex; gap: 4px; }
+  .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+
+  /* ── Loss Harvest Alert ── */
+  .harvest-alert {
+    background: rgba(34,197,94,0.05);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #86efac;
+    font-family: 'DM Mono', monospace;
+    margin-top: 10px;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1100px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .chat-layout { grid-template-columns: 1fr; }
+    .plan-panel { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>⚡ SOVEREIGN<br>WEALTH AGENT</h1>
+      <p>Production-Grade · Agentic · India</p>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showView('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showView('portfolio')">
+        <span class="icon">💼</span> Portfolio
+      </div>
+      <div class="nav-item" onclick="showView('chat')">
+        <span class="icon">🤖</span> Agent Chat
+      </div>
+      <div class="nav-item" onclick="showView('withdraw')">
+        <span class="icon">💸</span> Withdraw Planner
+      </div>
+      <div class="nav-item" onclick="showView('profile')">
+        <span class="icon">👤</span> Tax Profile
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Model: llama-3.3-70b<br>
+      Provider: Groq · Local DB: SQLite
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="topbar">
+      <h2 id="page-title">Dashboard</h2>
+      <span class="badge" id="groq-status">🟢 GROQ CONNECTED</span>
+    </div>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD VIEW ── -->
+      <div class="view active" id="view-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total Invested</div><div class="stat-value" id="stat-invested">—</div></div>
+          <div class="stat-card"><div class="stat-label">Current Value</div><div class="stat-value" id="stat-current">—</div></div>
+          <div class="stat-card warn"><div class="stat-label">Total Gain</div><div class="stat-value" id="stat-gain">—</div><div class="stat-sub" id="stat-gain-pct">—</div></div>
+          <div class="stat-card gold"><div class="stat-label">LTCG Exemption Left</div><div class="stat-value" id="stat-ltcg">—</div><div class="stat-sub">out of ₹1,25,000</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Portfolio Allocation</span>
+          </div>
+          <div style="padding:20px">
+            <div id="allocation-bars"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Holdings Overview</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Holding</button>
+          </div>
+          <table>
+            <thead><tr><th>Instrument</th><th>Type</th><th>Invested</th><th>Current</th><th>Gain/Loss</th><th>Buy Date</th></tr></thead>
+            <tbody id="holdings-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PORTFOLIO VIEW ── -->
+      <div class="view" id="view-portfolio">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Holdings</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Holding</button>
+          </div>
+          <table>
+            <thead><tr><th>Instrument</th><th>Type</th><th>Units</th><th>Buy Price</th><th>Current Price</th><th>Invested</th><th>Current Value</th><th>Gain%</th><th>Buy Date</th><th>Actions</th></tr></thead>
+            <tbody id="portfolio-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── CHAT VIEW ── -->
+      <div class="view" id="view-chat">
+        <div class="chat-layout">
+          <div class="chat-panel">
+            <div class="chat-messages" id="chat-messages">
+              <div class="msg msg-agent">
+                <div class="msg-label">Agent · llama-3.3-70b</div>
+                Namaste! 🙏 I'm your Sovereign Wealth Agent. Ask me anything about your portfolio, investments, or withdrawal strategy. I understand Indian tax laws (LTCG, STCG, 80C) and will help you make tax-efficient decisions.<br><br>
+                Try: <em>"I need ₹5 lakh in a week"</em> or <em>"Should I invest ₹2 lakh now?"</em>
+              </div>
+            </div>
+            <div style="padding: 0 16px 4px; display: flex; flex-wrap: wrap; gap: 6px;">
+              <span class="chip" onclick="sendChip(this)">I need ₹5 lakh in a week</span>
+              <span class="chip" onclick="sendChip(this)">Analyze my portfolio</span>
+              <span class="chip" onclick="sendChip(this)">Where should I invest ₹2 lakh?</span>
+              <span class="chip" onclick="sendChip(this)">How can I save tax this year?</span>
+            </div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chat-input" placeholder="Ask your financial agent anything..." onkeydown="handleChatKey(event)" rows="1"></textarea>
+              <button class="btn btn-primary" onclick="sendChat()">Send</button>
+            </div>
+          </div>
+
+          <div class="plan-panel" id="plan-panel">
+            <div class="plan-panel-header">
+              <div class="card-title">📋 Agent Output</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;">Results appear here</div>
+            </div>
+            <div class="plan-content" id="plan-content">
+              <div style="color:var(--muted);font-size:12px;text-align:center;margin-top:40px;font-family:'DM Mono',monospace;">
+                💬 Send a message to see<br>structured output
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WITHDRAW PLANNER VIEW ── -->
+      <div class="view" id="view-withdraw">
+        <div style="display:grid;grid-template-columns:340px 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">💸 Withdrawal Parameters</span></div>
+            <div style="padding:20px">
+              <div class="form-group">
+                <label class="form-label">Amount Needed (₹)</label>
+                <input type="number" class="form-input" id="wd-amount" placeholder="500000" value="500000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Available Days</label>
+                <input type="number" class="form-input" id="wd-days" placeholder="7" value="7">
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="runWithdrawalPreview()">
+                Calculate Optimal Plan
+              </button>
+              <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.6">
+                ℹ️ This uses the pure tax engine (no LLM call). For AI commentary, use Agent Chat.
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div id="withdrawal-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PROFILE VIEW ── -->
+      <div class="view" id="view-profile">
+        <div class="card" style="max-width:500px">
+          <div class="card-header"><span class="card-title">👤 Tax Profile</span></div>
+          <div style="padding:24px">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input type="text" class="form-input" id="p-name" placeholder="Your Name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input type="number" class="form-input" id="p-age" placeholder="Your Age">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Monthly Salary</label>
+              <input type="number" class="form-input" id="p-salary" placeholder="Your Monthly Salary">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Family Background</label>
+              <input type="text" class="form-input" id="p-background" placeholder="Your Family Background">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Goals</label>
+              <input type="text" class="form-input" id="p-goals" placeholder="Your Goals">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Monthly Expense</label>
+              <input type="number" class="form-input" id="p-monthly_expense" placeholder="Your Monthly Expense">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tax Regime</label>
+              <select class="form-select" id="p-regime">
+                <option value="new">New Regime (Default)</option>
+                <option value="old">Old Regime (With Deductions)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marginal Tax Rate (%)</label>
+              <select class="form-select" id="p-slab">
+                <option value="0">0% (Below taxable limit)</option>
+                <option value="5">5%</option>
+                <option value="10">10%</option>
+                <option value="15">15%</option>
+                <option value="20">20%</option>
+                <option value="30" selected>30% (Highest slab)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">NRI Status</label>
+              <select class="form-select" id="p-nri">
+                <option value="0">Resident Indian</option>
+                <option value="1">NRI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Recommendation Mode</label>
+              <select class="form-select" id="p-recommendation-mode">
+                <option value="weighted">Weighted score (default)</option>
+                <option value="strict">Strict rules</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+          </div>
+        </div>
+        <div class="card" style="max-width:500px">
+          <div class="card-header"><span class="card-title">🏦 Loan Component</span></div>
+          <div style="padding:24px">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Loan Name</label>
+                <input type="text" class="form-input" id="l-name" placeholder="Home / Personal Loan">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Loan Amount (₹)</label>
+                <input type="number" class="form-input" id="l-amount" placeholder="1000000">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Taken Date</label>
+                <input type="date" class="form-input" id="l-taken-date">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duration (months)</label>
+                <input type="number" class="form-input" id="l-duration" placeholder="120">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Monthly EMI (₹)</label>
+                <input type="number" class="form-input" id="l-emi" placeholder="15000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Interest Rate (% p.a.)</label>
+                <input type="number" class="form-input" id="l-rate" placeholder="9.5">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Pending Months</label>
+                <input type="number" class="form-input" id="l-pending-months" placeholder="96">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-input" id="l-notes" placeholder="Optional notes">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="addLoan()">+ Add Loan</button>
+            <div style="margin-top:14px">
+              <table>
+                <thead><tr><th>Loan</th><th>EMI</th><th>Rate</th><th>Pending</th><th>Action</th></tr></thead>
+                <tbody id="loan-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- Add/Edit Holding Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Add Holding</h3>
+    <input type="hidden" id="modal-id">
+    <div class="form-group">
+      <label class="form-label">Instrument Name</label>
+      <input type="text" class="form-input" id="m-name" placeholder="e.g. Parag Parikh Flexi Cap Fund">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select class="form-select" id="m-type">
+        <option value="equity_mf">Equity Mutual Fund</option>
+        <option value="liquid_mf">Liquid / Debt MF</option>
+        <option value="stocks">Stocks</option>
+        <option value="fd">Fixed Deposit</option>
+        <option value="savings">Savings Account</option>
+        <option value="gold_etf">Gold ETF / SGB</option>
+        <option value="nps">NPS</option>
+        <option value="ppf">PPF</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Invested Amount (₹)</label>
+        <input type="number" class="form-input" id="m-invested" placeholder="100000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Value (₹)</label>
+        <input type="number" class="form-input" id="m-current" placeholder="120000">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Units (optional)</label>
+        <input type="number" class="form-input" id="m-units" placeholder="250.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Buy Price/Unit (optional)</label>
+        <input type="number" class="form-input" id="m-buy-price" placeholder="45.20">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Buy Date</label>
+        <input type="date" class="form-input" id="m-buy-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lock-in End Date</label>
+        <input type="date" class="form-input" id="m-lockin">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Exit Load %</label>
+        <input type="number" class="form-input" id="m-exit-pct" placeholder="1" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Exit Load Period (days)</label>
+        <input type="number" class="form-input" id="m-exit-days" placeholder="365" value="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <input type="text" class="form-input" id="m-notes" placeholder="Optional notes">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHolding()">Save Holding</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let allHoldings = [];
+let editingId = null;
+let allLoans = [];
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  event?.currentTarget?.classList.add('active');
+  document.getElementById('page-title').textContent = {
+    dashboard: 'Dashboard', portfolio: 'Portfolio', chat: 'Agent Chat',
+    withdraw: 'Withdrawal Planner', profile: 'Tax Profile'
+  }[name];
+  if (name === 'dashboard' || name === 'portfolio') loadHoldings();
+  if (name === 'profile') loadProfile();
+}
+
+// ── Format helpers ──────────────────────────────────────────────────────────
+
+const fmt = (n) => '₹' + (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+const fmtPct = (n) => (n >= 0 ? '+' : '') + (n || 0).toFixed(1) + '%';
+
+// ── Load Holdings ───────────────────────────────────────────────────────────
+
+async function loadHoldings() {
+  try {
+    const res = await fetch(`${API}/holdings`);
+    const data = await res.json();
+    allHoldings = data.holdings;
+    renderDashboard(data);
+    renderPortfolioTable(data.holdings);
+  } catch (e) {
+    console.error('Could not reach API. Is the backend running?', e);
+  }
+}
+
+function renderDashboard(data) {
+  const s = data.summary;
+  document.getElementById('stat-invested').textContent = fmt(s.total_invested);
+  document.getElementById('stat-current').textContent = fmt(s.total_current_value);
+  const gainEl = document.getElementById('stat-gain');
+  gainEl.textContent = fmt(s.total_gain);
+  gainEl.className = 'stat-value ' + (s.total_gain >= 0 ? 'positive' : 'negative');
+  document.getElementById('stat-gain-pct').textContent = fmtPct(s.total_gain_pct);
+  document.getElementById('stat-ltcg').textContent = fmt(s.ltcg_remaining);
+
+  // Allocation bars
+  const typeGroups = {};
+  data.holdings.forEach(h => {
+    typeGroups[h.instrument_type] = (typeGroups[h.instrument_type] || 0) + h.current_value;
+  });
+  const total = s.total_current_value || 1;
+  const colors = { silver_etf:'#C0C0C0 ', equity_mf: '#3b82f6', liquid_mf: '#00d4aa', stocks: '#a855f7', fd: '#f59e0b', savings: '#22c55e', gold_etf: '#fbbf24', nps: '#ef4444', ppf: '#14b8a6' };
+  const labels = { silver_etf: 'Silver ETF',equity_mf: 'Equity MF', liquid_mf: 'Liquid MF', stocks: 'Stocks', fd: 'Fixed Deposit', savings: 'Savings', gold_etf: 'Gold ETF', nps: 'NPS', ppf: 'PPF' };
+
+  const barsHtml = Object.entries(typeGroups).map(([type, val]) => {
+    const pct = (val / total * 100).toFixed(1);
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>${labels[type] || type}</span>
+          <span style="font-family:'DM Mono',monospace">${fmt(val)} <span style="color:var(--muted)">(${pct}%)</span></span>
+        </div>
+        <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${colors[type] || '#64748b'};border-radius:3px;transition:width 0.5s ease"></div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('allocation-bars').innerHTML = barsHtml;
+
+  // Dashboard table
+  const tbody = document.getElementById('holdings-table-body');
+  tbody.innerHTML = data.holdings.map(h => {
+    const gain = h.current_value - h.invested_amount;
+    const gainPct = h.invested_amount ? (gain / h.invested_amount * 100) : 0;
+    return `<tr>
+      <td><strong>${h.instrument_name}</strong></td>
+      <td><span class="type-badge type-${h.instrument_type}">${h.instrument_type.replace('_', ' ')}</span></td>
+      <td>${fmt(h.invested_amount)}</td>
+      <td>${fmt(h.current_value)}</td>
+      <td class="${gain >= 0 ? 'positive' : 'negative'}">${fmt(gain)} (${fmtPct(gainPct)})</td>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${h.buy_date}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPortfolioTable(holdings) {
+  const tbody = document.getElementById('portfolio-table-body');
+  tbody.innerHTML = holdings.map(h => {
+    const gain = h.current_value - h.invested_amount;
+    const gainPct = h.invested_amount ? (gain / h.invested_amount * 100) : 0;
+    return `<tr>
+      <td><strong>${h.instrument_name}</strong></td>
+      <td><span class="type-badge type-${h.instrument_type}">${h.instrument_type.replace('_', ' ')}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${h.units || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${h.buy_price ? '₹' + h.buy_price : '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${h.current_price ? '₹' + h.current_price : '—'}</td>
+      <td>${fmt(h.invested_amount)}</td>
+      <td>${fmt(h.current_value)}</td>
+      <td class="${gain >= 0 ? 'positive' : 'negative'}">${fmtPct(gainPct)}</td>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${h.buy_date}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal(${h.id})" style="margin-right:4px">Edit</button>
+        <!-- <button class="btn btn-danger btn-sm" onclick="deleteHolding(${h.id})">Del</button> -->
+        <button class="btn btn-danger btn-sm" onclick="sellHolding(${h.id}, ${h.units})">Sell</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add Holding';
+  document.getElementById('modal-id').value = '';
+  ['m-name','m-invested','m-current','m-units','m-buy-price','m-lockin','m-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('m-exit-pct').value = '0';
+  document.getElementById('m-exit-days').value = '0';
+  document.getElementById('m-buy-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const h = allHoldings.find(h => h.id === id);
+  if (!h) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit Holding';
+  document.getElementById('m-name').value = h.instrument_name;
+  document.getElementById('m-type').value = h.instrument_type;
+  document.getElementById('m-invested').value = h.invested_amount;
+  document.getElementById('m-current').value = h.current_value;
+  document.getElementById('m-units').value = h.units || '';
+  document.getElementById('m-buy-price').value = h.buy_price || '';
+  document.getElementById('m-buy-date').value = h.buy_date;
+  document.getElementById('m-lockin').value = h.lock_in_end_date || '';
+  document.getElementById('m-exit-pct').value = h.exit_load_percent || 0;
+  document.getElementById('m-exit-days').value = h.exit_load_days || 0;
+  document.getElementById('m-notes').value = h.notes || '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function saveHolding() {
+  const payload = {
+    instrument_name: document.getElementById('m-name').value,
+    instrument_type: document.getElementById('m-type').value,
+    invested_amount: parseFloat(document.getElementById('m-invested').value),
+    current_value: parseFloat(document.getElementById('m-current').value),
+    units: parseFloat(document.getElementById('m-units').value) || null,
+    buy_price: parseFloat(document.getElementById('m-buy-price').value) || null,
+    current_price: null,
+    buy_date: document.getElementById('m-buy-date').value,
+    lock_in_end_date: document.getElementById('m-lockin').value || null,
+    exit_load_percent: parseFloat(document.getElementById('m-exit-pct').value) || 0,
+    exit_load_days: parseInt(document.getElementById('m-exit-days').value) || 0,
+    notes: document.getElementById('m-notes').value || null,
+  };
+
+  const url = editingId ? `${API}/holdings/${editingId}` : `${API}/holdings`;
+  const method = editingId ? 'PUT' : 'POST';
+  await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+  closeModal();
+  loadHoldings();
+}
+
+async function deleteHolding(id) {
+  if (!confirm('Delete this holding?')) return;
+  await fetch(`${API}/holdings/${id}`, { method: 'DELETE' });
+  loadHoldings();
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+function sendChip(el) {
+  document.getElementById('chat-input').value = el.textContent;
+  sendChat();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const query = input.value.trim();
+  if (!query) return;
+  input.value = '';
+
+  addMsg('user', query);
+  const loaderEl = addMsg('agent', `<div class="loader"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Agent thinking...</div>`);
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.detail || `HTTP ${res.status}`);
+    }
+
+    loaderEl.remove();
+
+    if (data.type === 'withdrawal') {
+      renderWithdrawalResponse(data);
+    } else if (data.type === 'market') {
+      renderMarketQuoteResponse(data);
+    } else {
+      const advice = data.investment_advice || 'No advice generated.';
+      addMsgMarkdown('agent', advice);
+      if (data.loan_advisory?.message) {
+        addMsg('agent', `<div class="msg-label">Loan Advisory</div><div class="sentiment-box">${renderMarkdown(data.loan_advisory.message)}</div>`);
+      }
+      if (data.market_sentiment) {
+        addMsg('agent', `<div class="msg-label">Market Sentiment</div><div class="sentiment-box">${renderMarkdown(data.market_sentiment)}</div>`);
+      }
+    }
+
+    renderPlanPanel(data);
+
+  } catch (e) {
+    loaderEl.remove();
+    addMsg('agent', `❌ Error: ${e.message}. Make sure the backend is running on port 8000 and GROQ_API_KEY is set.`);
+  }
+}
+
+function addMsg(role, content) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  if (role === 'agent') {
+    div.innerHTML = `<div class="msg-label">Agent · llama-3.3-70b</div>${content}`;
+  } else {
+    div.innerHTML = `<div class="msg-label">You</div>${content}`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderMarkdown(md) {
+  const text = String(md || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Preserve fenced code blocks before line-based parsing.
+  const codeBlocks = [];
+  let html = escapeHtml(text).replace(/```([\s\S]*?)```/g, (_, code) => {
+    const token = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(`<pre style="background:var(--surface2);padding:10px;border-radius:8px;overflow:auto"><code>${code.trim()}</code></pre>`);
+    return token;
+  });
+
+  const lines = html.split('\n');
+  const out = [];
+  let inList = false;
+
+  const closeList = () => {
+    if (inList) {
+      out.push('</ul>');
+      inList = false;
+    }
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      closeList();
+      out.push('');
+      continue;
+    }
+
+    if (/^###\s+/.test(trimmed)) {
+      closeList();
+      out.push(`<h4 style="margin:10px 0 6px">${trimmed.replace(/^###\s+/, '')}</h4>`);
+      continue;
+    }
+    if (/^##\s+/.test(trimmed)) {
+      closeList();
+      out.push(`<h3 style="margin:10px 0 6px">${trimmed.replace(/^##\s+/, '')}</h3>`);
+      continue;
+    }
+    if (/^#\s+/.test(trimmed)) {
+      closeList();
+      out.push(`<h2 style="margin:10px 0 6px">${trimmed.replace(/^#\s+/, '')}</h2>`);
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      if (!inList) {
+        out.push('<ul style="margin:6px 0 6px 18px">');
+        inList = true;
+      }
+      out.push(`<li>${trimmed.replace(/^[-*]\s+/, '')}</li>`);
+      continue;
+    }
+
+    closeList();
+    out.push(line);
+  }
+  closeList();
+
+  html = out.join('\n');
+
+  // Inline markdown after structure transforms.
+  html = html.replace(/`([^`]+)`/g, '<code style="background:var(--surface2);padding:2px 6px;border-radius:6px">$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+  // Restore code blocks and add line breaks.
+  html = html.replace(/__CODE_BLOCK_(\d+)__/g, (_, i) => codeBlocks[Number(i)]);
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function addMsgMarkdown(role, markdownText) {
+  return addMsg(role, renderMarkdown(markdownText));
+}
+
+function renderWithdrawalResponse(data) {
+  const plan = data.withdrawal_plan;
+  let html = `<strong>💸 Withdrawal Plan Generated</strong><br><br>`;
+  html += `Target: ${fmt(plan.target_amount)}<br>`;
+  html += `Total Tax: <span style="color:var(--warn)">${fmt(plan.total_tax)}</span><br>`;
+  html += `Saved vs Worst Case: <span style="color:var(--success)">+${fmt(plan.tax_saved_vs_worst_case)}</span><br>`;
+  if (plan.shortfall > 0) html += `<span style="color:var(--danger)">⚠️ Shortfall: ${fmt(plan.shortfall)}</span><br>`;
+  html += `<br>See the panel on the right for the full breakdown. ➡️`;
+  addMsg('agent', html);
+
+  if (data.market_sentiment) {
+    addMsg('agent', `<div class="msg-label">Market Context</div><div class="sentiment-box">${renderMarkdown(data.market_sentiment)}</div>`);
+  }
+}
+
+function renderMarketQuoteResponse(data) {
+  const q = data.market_quote || {};
+  if (q.error) {
+    addMsg('agent', `❌ ${q.error}`);
+    return;
+  }
+
+  const price = (q.price ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  const chg = q.change ?? 0;
+  const chgPct = q.change_pct ?? 0;
+  const cls = chg >= 0 ? 'positive' : 'negative';
+  const sign = chg >= 0 ? '+' : '';
+  const currency = q.currency || 'INR';
+  const ts = q.updated_at ? new Date(q.updated_at).toLocaleString('en-IN') : '—';
+  const freshness = q.is_stale ? ' (cached)' : '';
+
+  addMsg('agent', `
+    <strong>📈 ${q.label || q.symbol || 'Market Quote'}</strong><br><br>
+    <div style="display:flex;justify-content:space-between"><span>Symbol</span><span style="font-family:'DM Mono',monospace">${q.symbol || '—'}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Last Price</span><span style="font-family:'DM Mono',monospace">${currency} ${price}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Change</span><span class="${cls}" style="font-family:'DM Mono',monospace">${sign}${chg.toFixed(2)} (${sign}${chgPct.toFixed(2)}%)</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Exchange</span><span>${q.exchange || '—'}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Updated</span><span style="font-size:12px;color:var(--muted)">${ts}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Source: ${q.source || 'Unknown'}${freshness}</div>
+  `);
+}
+
+// ── Plan Panel ─────────────────────────────────────────────────────────────
+async function sellHolding(id, maxUnits) {
+  const units = prompt(`Enter units to sell (Available: ${maxUnits}):`, maxUnits);
+  
+  if (units === null || units === "" || parseFloat(units) <= 0) return;
+  if (parseFloat(units) > maxUnits) {
+    alert("Error: You cannot sell more units than you own.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/holdings/${id}/sell`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ units: parseFloat(units) })
+    });
+
+    if (res.ok) {
+      alert(`✅ Sell successful! LTCG tracker updated.`);
+      loadHoldings(); // Refresh dashboard stats [cite: 109]
+    } else {
+      const err = await res.json();
+      alert(`❌ Error: ${err.detail}`);
+    }
+  } catch (e) {
+    alert("❌ Connection to backend failed.");
+  }
+}
+
+function renderPlanPanel(data) {
+  const panel = document.getElementById('plan-content');
+  
+  if (data.type === 'withdrawal' && data.withdrawal_plan) {
+    const plan = data.withdrawal_plan;
+    let html = `
+      <div class="plan-summary">
+        <div class="summary-row"><span>Target</span><span>${fmt(plan.target_amount)}</span></div>
+        <div class="summary-row"><span>Gross Withdrawal</span><span>${fmt(plan.total_gross_withdrawal)}</span></div>
+        <div class="summary-row plan-step-tax"><span>Total Tax</span><span>${fmt(plan.total_tax)}</span></div>
+        <div class="summary-row plan-step-net"><span>Net in Hand</span><span>${fmt(plan.total_net_received)}</span></div>
+        <div class="summary-row"><span style="color:var(--success)">💰 Tax Saved</span><span style="color:var(--success)">${fmt(plan.tax_saved_vs_worst_case)}</span></div>
+      </div>`;
+
+    plan.plan.forEach((step, i) => {
+      html += `
+        <div class="plan-step">
+          <div class="plan-step-number">${i+1}</div>
+          <div class="plan-step-name">${step.instrument}</div>
+          <div class="plan-step-detail">
+            <span class="type-badge type-${step.type}">${step.type.replace('_',' ')}</span><br>
+            Withdraw: ${fmt(step.withdraw_amount)}<br>
+            <span class="plan-step-tax">Tax: ${fmt(step.tax_amount)} (${step.tax_rate_pct.toFixed(1)}%)</span><br>
+            <span class="plan-step-net">Net: ${fmt(step.net_received)}</span><br>
+            Settlement: T+${step.settlement_days} days<br>
+            ${step.is_long_term ? '✅ LTCG' : '⚠️ STCG'} · ${step.notes}
+          </div>
+        </div>`;
+    });
+
+    if (plan.loss_harvest_opportunities?.length > 0) {
+      html += `<div class="harvest-alert">🌱 Tax Harvest Opportunity:<br>`;
+      plan.loss_harvest_opportunities.forEach(l => {
+        html += `Book loss in ${l.instrument}: ${fmt(l.loss)}<br>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div class="hitl-banner">
+      <div class="hitl-banner-text">
+        <strong>⏸ Awaiting Your Approval (HITL)</strong>
+        Review the plan before executing any withdrawals.
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="alert('✅ Plan approved! In production, this triggers execution.')">Approve</button>
+    </div>`;
+    if (data.loan_advisory?.message) {
+      html += `<div class="sentiment-box">🏦 ${data.loan_advisory.message}</div>`;
+    }
+
+    panel.innerHTML = html;
+  } else if (data.type === 'market') {
+    const q = data.market_quote || {};
+    if (q.error) {
+      panel.innerHTML = `<div class="sentiment-box">❌ ${q.error}</div>`;
+      return;
+    }
+    const cls = (q.change ?? 0) >= 0 ? 'positive' : 'negative';
+    const sign = (q.change ?? 0) >= 0 ? '+' : '';
+    panel.innerHTML = `
+      <div class="plan-summary">
+        <div class="summary-row"><span>Instrument</span><span>${q.label || q.symbol || '—'}</span></div>
+        <div class="summary-row"><span>Symbol</span><span style="font-family:'DM Mono',monospace">${q.symbol || '—'}</span></div>
+        <div class="summary-row"><span>LTP</span><span style="font-family:'DM Mono',monospace">${(q.currency || 'INR')} ${(q.price ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+        <div class="summary-row ${cls}"><span>Change</span><span>${sign}${(q.change ?? 0).toFixed(2)} (${sign}${(q.change_pct ?? 0).toFixed(2)}%)</span></div>
+        <div class="summary-row"><span>Exchange</span><span>${q.exchange || '—'}</span></div>
+      </div>
+      <div class="sentiment-box">🕒 ${q.updated_at ? new Date(q.updated_at).toLocaleString('en-IN') : 'Unknown update time'}<br>Source: ${q.source || 'Unknown'}${q.is_stale ? ' (cached)' : ''}</div>
+    `;
+  } else {
+    // Investment panel
+    const s = data?.portfolio_summary;
+    if (!s) {
+      panel.innerHTML = `<div class="sentiment-box">❌ ${data?.detail || 'Unable to load portfolio summary.'}</div>`;
+      return;
+    }
+    const ltcgUsedFY = s.ltcg_used_fy ?? s.realized_ltcg_fy ?? 0;
+    panel.innerHTML = `
+      <div class="plan-summary">
+        <div class="summary-row"><span>Portfolio Value</span><span>${fmt(s.total_current_value)}</span></div>
+        <div class="summary-row"><span>Total Invested</span><span>${fmt(s.total_invested)}</span></div>
+        <div class="summary-row positive"><span>Gain</span><span>${fmt(s.total_current_value - s.total_invested)}</span></div>
+        <div class="summary-row"><span>LTCG Used FY</span><span>${fmt(ltcgUsedFY)}</span></div>
+        <div class="summary-row"><span>LTCG Remaining</span><span style="color:var(--success)">${fmt(s.ltcg_remaining)}</span></div>
+      </div>
+      ${data.market_sentiment ? `<div class="sentiment-box">📡 ${data.market_sentiment}</div>` : ''}
+    `;
+  }
+}
+
+// ── Withdrawal Preview (no LLM) ───────────────────────────────────────────
+
+async function runWithdrawalPreview() {
+  const amount = parseFloat(document.getElementById('wd-amount').value);
+  const days = parseInt(document.getElementById('wd-days').value);
+  const resultDiv = document.getElementById('withdrawal-result');
+  resultDiv.innerHTML = `<div class="loader" style="margin-top:20px"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Computing...</div>`;
+
+  try {
+    const res = await fetch(`${API}/withdrawal-preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, days })
+    });
+    const plan = await res.json();
+
+    let html = `
+      <div class="card">
+        <div class="card-header"><span class="card-title">💸 Optimal Withdrawal Plan</span></div>
+        <div style="padding:20px">
+          <div class="plan-summary">
+            <div class="summary-row"><span>Target</span><span>${fmt(plan.target_amount)}</span></div>
+            <div class="summary-row"><span>Gross</span><span>${fmt(plan.total_gross_withdrawal)}</span></div>
+            <div class="summary-row" style="color:var(--warn)"><span>Total Tax</span><span>${fmt(plan.total_tax)}</span></div>
+            <div class="summary-row" style="color:var(--success)"><span>Net in Hand</span><span>${fmt(plan.total_net_received)}</span></div>
+            <div class="summary-row"><span style="color:var(--success)">💰 Saved vs Breaking FD</span><span style="color:var(--success)">+${fmt(plan.tax_saved_vs_worst_case)}</span></div>
+          </div>`;
+
+    plan.plan.forEach((step, i) => {
+      html += `
+        <div class="plan-step">
+          <div class="plan-step-number">${i+1}</div>
+          <div class="plan-step-name">${step.instrument}</div>
+          <div class="plan-step-detail">
+            <span class="type-badge type-${step.type}">${step.type.replace('_',' ')}</span>
+            &nbsp; ${step.is_long_term ? '✅ LTCG' : '⚠️ STCG'}<br>
+            Withdraw: ${fmt(step.withdraw_amount)} &nbsp;·&nbsp;
+            <span class="plan-step-tax">Tax: ${fmt(step.tax_amount)}</span> &nbsp;·&nbsp;
+            <span class="plan-step-net">Net: ${fmt(step.net_received)}</span><br>
+            Settlement: T+${step.settlement_days} days &nbsp;·&nbsp; ${step.notes}
+          </div>
+        </div>`;
+    });
+
+    if (plan.loss_harvest_opportunities?.length > 0) {
+      html += `<div class="harvest-alert">🌱 Book these losses to offset gains:<br>`;
+      plan.loss_harvest_opportunities.forEach(l => {
+        html += `• ${l.instrument}: Loss of ${fmt(l.loss)}<br>`;
+      });
+      html += `</div>`;
+    }
+
+    if (plan.shortfall > 0) {
+      html += `<div style="color:var(--danger);font-size:12px;margin-top:10px;font-family:'DM Mono',monospace">⚠️ Shortfall of ${fmt(plan.shortfall)} — some holdings are locked or take longer than ${days} days.</div>`;
+    }
+
+    html += `</div></div>`;
+    resultDiv.innerHTML = html;
+  } catch (e) {
+    resultDiv.innerHTML = `<div style="color:var(--danger)">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Profile ────────────────────────────────────────────────────────────────
+
+async function loadProfile() {
+  try {
+    const res = await fetch(`${API}/profile`);
+    const p = await res.json();
+    document.getElementById('p-name').value = p.name || '';
+    document.getElementById('p-regime').value = p.tax_regime || 'new';
+    document.getElementById('p-slab').value = p.income_slab_rate || '30';
+    document.getElementById('p-nri').value = p.is_nri || '0';
+    document.getElementById('p-age').value = p.age || '';
+    document.getElementById('p-salary').value = p.monthly_salary || '';
+    document.getElementById('p-background').value = p.family_background || '';
+    document.getElementById('p-goals').value = p.goals_json || '';
+    document.getElementById('p-monthly_expense').value = p.monthly_expense || '';
+    document.getElementById('p-recommendation-mode').value = p.recommendation_mode || 'weighted';
+    allLoans = p.loans || [];
+    renderLoanTable();
+  } catch {}
+}
+
+async function saveProfile() {
+  const payload = {
+    name: document.getElementById('p-name').value,
+    tax_regime: document.getElementById('p-regime').value,
+    income_slab_rate: parseFloat(document.getElementById('p-slab').value),
+    is_nri: parseInt(document.getElementById('p-nri').value),
+    age: parseInt(document.getElementById('p-age').value),
+    monthly_salary: parseFloat(document.getElementById('p-salary').value),
+    family_background: document.getElementById('p-background').value,
+    goals_json: document.getElementById('p-goals').value,
+    monthly_expense: parseFloat(document.getElementById('p-monthly_expense').value),
+    recommendation_mode: document.getElementById('p-recommendation-mode').value
+  };
+  await fetch(`${API}/profile`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+  alert('✅ Profile saved!');
+}
+
+function renderLoanTable() {
+  const tbody = document.getElementById('loan-table-body');
+  if (!tbody) return;
+  if (!allLoans.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">No active loans</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allLoans.map(l => `<tr>
+    <td><strong>${l.loan_name || 'Loan'}</strong><br><span style="color:var(--muted);font-size:11px">${l.taken_date}</span></td>
+    <td>${fmt(l.monthly_emi)}</td>
+    <td>${(l.interest_rate || 0).toFixed(2)}%</td>
+    <td>${l.pending_months} mo</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteLoan(${l.id})">Delete</button></td>
+  </tr>`).join('');
+}
+
+async function addLoan() {
+  const payload = {
+    loan_name: document.getElementById('l-name').value || 'Loan',
+    loan_amount: parseFloat(document.getElementById('l-amount').value),
+    taken_date: document.getElementById('l-taken-date').value,
+    duration_months: parseInt(document.getElementById('l-duration').value),
+    monthly_emi: parseFloat(document.getElementById('l-emi').value),
+    interest_rate: parseFloat(document.getElementById('l-rate').value),
+    pending_months: parseInt(document.getElementById('l-pending-months').value),
+    notes: document.getElementById('l-notes').value || null
+  };
+  if (!payload.loan_amount || !payload.taken_date || !payload.duration_months || !payload.monthly_emi || !payload.interest_rate || payload.pending_months === undefined || Number.isNaN(payload.pending_months)) {
+    alert('Please fill all required loan fields.');
+    return;
+  }
+  await fetch(`${API}/loans`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+  ['l-name', 'l-amount', 'l-duration', 'l-emi', 'l-rate', 'l-pending-months', 'l-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('l-taken-date').value = '';
+  await loadProfile();
+}
+
+async function deleteLoan(id) {
+  if (!confirm('Delete this loan entry?')) return;
+  await fetch(`${API}/loans/${id}`, { method: 'DELETE' });
+  await loadProfile();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadHoldings();
+</script>
+</body>
+</html>
