@@ -840,7 +840,7 @@
 </div>
 
 <script>
-const API = 'http://localhost:8000';
+const API = 'https://sovereign-wealth-agent.onrender.com';
 let allHoldings = [];
 let editingId = null;
 let allLoans = [];
@@ -1070,7 +1070,7 @@ async function sendChat() {
 
   } catch (e) {
     loaderEl.remove();
-    addMsg('agent', `❌ Error: ${e.message}. Make sure the backend is running on port 8000 and GROQ_API_KEY is set.`);
+    addMsg('agent', `❌ Error: ${e.message}. Make sure the backend is running and GROQ_API_KEY is set.`);
   }
 }
 
